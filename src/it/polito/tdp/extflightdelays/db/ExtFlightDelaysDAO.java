@@ -5,11 +5,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
 import it.polito.tdp.extflightdelays.model.Airline;
 import it.polito.tdp.extflightdelays.model.Airport;
+import it.polito.tdp.extflightdelays.model.Arco;
 import it.polito.tdp.extflightdelays.model.Flight;
 
 public class ExtFlightDelaysDAO {
@@ -37,7 +39,7 @@ public class ExtFlightDelaysDAO {
 		}
 	}
 
-	public List<Airport> loadAllAirports() {
+	public List<Airport> loadAllAirports(HashMap<Integer, Airport> idMap) {
 		String sql = "SELECT * FROM airports";
 		List<Airport> result = new ArrayList<Airport>();
 
@@ -51,6 +53,7 @@ public class ExtFlightDelaysDAO {
 						rs.getString("CITY"), rs.getString("STATE"), rs.getString("COUNTRY"), rs.getDouble("LATITUDE"),
 						rs.getDouble("LONGITUDE"), rs.getDouble("TIMEZONE_OFFSET"));
 				result.add(airport);
+				idMap.put(rs.getInt("ID"), airport);
 			}
 
 			conn.close();
@@ -80,6 +83,58 @@ public class ExtFlightDelaysDAO {
 						rs.getDouble("ELAPSED_TIME"), rs.getInt("DISTANCE"),
 						rs.getTimestamp("ARRIVAL_DATE").toLocalDateTime(), rs.getDouble("ARRIVAL_DELAY"));
 				result.add(flight);
+			}
+
+			conn.close();
+			return result;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+	}
+	
+	public List<Airport> loadAirports(double dist, HashMap<Integer, Airport> idMap) {
+		String sql = "SELECT distinct f.ORIGIN_AIRPORT_ID as id FROM flights f WHERE f.DISTANCE > ?";
+		List<Airport> result = new ArrayList<Airport>();
+
+		try {
+			Connection conn = ConnectDB.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setDouble(1, dist);
+			ResultSet rs = st.executeQuery();
+
+			while (rs.next()) {
+				result.add(idMap.get(rs.getInt("id")));
+			}
+
+			conn.close();
+			return result;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+	}
+
+	public double getPeso(Airport airport, Airport airport2) {
+		// TODO Auto-generated method stub
+		String sql = "SELECT AVG(DISTANCE) AS avg FROM flights f WHERE (f.ORIGIN_AIRPORT_ID = ? AND f.DESTINATION_AIRPORT_ID = ?) OR (f.ORIGIN_AIRPORT_ID = ? AND f.DESTINATION_AIRPORT_ID = ?)";
+		double result = 0.0;
+
+		try {
+			Connection conn = ConnectDB.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, airport.getId());
+			st.setInt(2, airport2.getId());
+			st.setInt(3, airport2.getId());
+			st.setInt(4, airport.getId());
+			ResultSet rs = st.executeQuery();
+
+			while (rs.next()) {
+				result = rs.getDouble("avg");
 			}
 
 			conn.close();

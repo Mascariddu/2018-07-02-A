@@ -9,6 +9,7 @@ package it.polito.tdp.extflightdelays;
 import java.net.URL;
 import java.util.ResourceBundle;
 
+import it.polito.tdp.extflightdelays.model.Airport;
 import it.polito.tdp.extflightdelays.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -37,7 +38,7 @@ public class ExtFlightDelaysController {
     private Button btnAnalizza; // Value injected by FXMLLoader
 
     @FXML // fx:id="cmbBoxAeroportoPartenza"
-    private ComboBox<?> cmbBoxAeroportoPartenza; // Value injected by FXMLLoader
+    private ComboBox<Airport> cmbBoxAeroportoPartenza; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnAeroportiConnessi"
     private Button btnAeroportiConnessi; // Value injected by FXMLLoader
@@ -51,16 +52,55 @@ public class ExtFlightDelaysController {
     @FXML
     void doAnalizzaAeroporti(ActionEvent event) {
 
+    	try {
+    		
+    		double distMedia = Double.parseDouble(this.distanzaMinima.getText());
+    		model.creaGrafo(distMedia);
+    		this.cmbBoxAeroportoPartenza.getItems().addAll(model.vertex());
+    		
+    	} catch (NumberFormatException e) {
+    		
+    		e.printStackTrace();
+    		txtResult.appendText("Inserisci un input numerico corretto!");
+    		
+    	}
+    	
     }
 
     @FXML
     void doCalcolaAeroportiConnessi(ActionEvent event) {
 
+    	txtResult.clear();
+    	Airport airport = this.cmbBoxAeroportoPartenza.getValue();
+    	
+    	if(airport != null) {
+    		
+    		for(Airport airport2 : model.cercaConnessi(airport))
+    			txtResult.appendText(airport2.toString()+"\n");
+    		
+    	} else txtResult.appendText("Seleziona almeno un aeroporto di partenza!");
+    			
     }
 
     @FXML
     void doCercaItinerario(ActionEvent event) {
 
+    	txtResult.clear();
+    	
+    	try {
+    		
+    		double miglia = Double.parseDouble(numeroVoliTxtInput.getText());
+    		Airport airport = this.cmbBoxAeroportoPartenza.getValue();
+    		for(Airport airport2 : model.trovaBest(airport,miglia))
+    			txtResult.appendText(airport2.toString()+"\n");
+    		txtResult.appendText("Miglia totali percorse: "+model.getMiglia(model.trovaBest(airport,miglia),null));
+    		
+    	}catch (NumberFormatException e) {
+			// TODO: handle exception
+    		e.printStackTrace();
+    		txtResult.appendText("Inserisci dati esatti in input!");
+		}
+    	
     }
 
     @FXML // This method is called by the FXMLLoader when initialization is complete
